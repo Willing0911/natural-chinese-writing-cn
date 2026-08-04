@@ -1,0 +1,4 @@
+interface:
+  display_name: "自然中文表达"
+  short_description: "审校并改写中文内容，减少模板化、负向与机械表达痕迹"
+  default_prompt: "Use $natural-chinese-writing-cn to revise this Chinese draft into direct, natural, audience-ready prose."
