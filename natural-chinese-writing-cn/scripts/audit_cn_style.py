@@ -97,6 +97,28 @@ def audit(text: str) -> dict:
 
     add_finding(
         findings,
+        "TEXTBOOK_FRAME",
+        "low",
+        "Textbook framing delays the actual observation or conclusion.",
+        regex_matches(lines, r"在(?:当今|如今|当前).{0,20}(?:时代|背景下)|随着.{0,28}(?:发展|进步|演进)|值得注意的是|不难发现|综上所述|总而言之"),
+    )
+
+    sequence_terms = []
+    for label in ("首先", "其次", "最后"):
+        hits = regex_matches(lines, rf"(?:^|[，。；：])\s*{label}(?:[，：]|\b)")
+        if hits:
+            sequence_terms.extend(hits[:1])
+    if len(sequence_terms) == 3:
+        add_finding(
+            findings,
+            "FIXED_SEQUENCE",
+            "low",
+            "A fixed first-second-last sequence may be useful, but review whether the structure is genuinely ordered.",
+            sequence_terms,
+        )
+
+    add_finding(
+        findings,
         "PRODUCTION_RESIDUE",
         "high",
         "Production or chat-system residue appears in reader-facing text.",
@@ -134,12 +156,30 @@ def audit(text: str) -> dict:
     if len(abstract_terms) >= 5:
         add_finding(findings, "ABSTRACT_CLUSTER", "medium", "Abstract promotional terms cluster without enough concrete actors or actions.", abstract_terms)
 
+    add_finding(
+        findings,
+        "GENERIC_AUTHORITY",
+        "low",
+        "Generic authority or evidence language needs a named source, scope, or softer claim.",
+        regex_matches(lines, r"(?:行业|业内|专家|研究|数据|实践)(?:普遍)?(?:认为|指出|表明|显示|证明)"),
+    )
+
     connectors = regex_matches(lines, r"(?:^|[。；]\s*)(?:此外|与此同时|值得注意的是|需要指出的是|综上所述|总而言之|从某种意义上说)[，,]")
     if len(connectors) >= 3:
         add_finding(findings, "FORMULA_TRANSITION", "low", "Formulaic transitions repeat; let paragraph logic carry more of the connection.", connectors)
 
     slogan = regex_matches(lines, r"让每.{0,18}都.{0,35}每.{0,18}都|真正实现.{0,35}(?:跃迁|转变|升级)|共同开启.{0,30}(?:新篇章|新征程)|未来可期|持续赋能")
     add_finding(findings, "GENERIC_SLOGAN", "low", "The ending or summary sounds manufactured rather than concrete.", slogan)
+
+    emotive_marks = regex_matches(lines, r"[？?]{3,}|(?:。|\.){3,}|=\s*=")
+    if len(emotive_marks) >= 3:
+        add_finding(
+            findings,
+            "PERFORMED_SPONTANEITY",
+            "low",
+            "Repeated emotional punctuation can become another template; confirm it belongs to the writer and surface.",
+            emotive_marks,
+        )
 
     bullets = sum(1 for _, line in lines if re.match(r"^\s*[-*+]\s+", line))
     headings = sum(1 for _, line in lines if re.match(r"^\s*#{1,6}\s+", line))
